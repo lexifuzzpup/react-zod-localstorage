@@ -91,6 +91,41 @@ describe("useLocalStorage", () => {
         expect(second.result.current[0]).toBe("persisted");
     });
 
+    test("setting undefined removes the item and clears state", () => {
+        localStorage.setItem("name", "alice");
+        const schema = z.string();
+        const { result } = renderHook(() => useLocalStorage("name", schema));
+        expect(result.current[0]).toBe("alice");
+
+        act(() => result.current[1](undefined));
+
+        expect(result.current[0]).toBeUndefined();
+        expect(localStorage.getItem("name")).toBeNull();
+    });
+
+    test("deleted value stays deleted after a remount", () => {
+        localStorage.setItem("name", "alice");
+        const schema = z.string();
+        const first = renderHook(() => useLocalStorage("name", schema));
+        act(() => first.result.current[1](undefined));
+        first.unmount();
+
+        const second = renderHook(() => useLocalStorage("name", schema));
+        expect(second.result.current[0]).toBeUndefined();
+    });
+
+    test("setting undefined on a missing key is a no-op", () => {
+        localStorage.setItem("other", "untouched");
+        const schema = z.string();
+        const { result } = renderHook(() => useLocalStorage("missing", schema));
+
+        act(() => result.current[1](undefined));
+
+        expect(result.current[0]).toBeUndefined();
+        expect(localStorage.getItem("missing")).toBeNull();
+        expect(localStorage.getItem("other")).toBe("untouched");
+    });
+
     test("setter identity is stable across renders when schema is stable", () => {
         const schema = z.string();
         const { result, rerender } = renderHook(() => useLocalStorage("name", schema));
@@ -195,6 +230,17 @@ describe("useLocalStorageJson", () => {
 
         const second = renderHook(() => useLocalStorageJson("user", User));
         expect(second.result.current[0]).toEqual({ name: "alice", age: 25 });
+    });
+
+    test("setting undefined removes the item instead of storing JSON", () => {
+        localStorage.setItem("user", JSON.stringify({ name: "alice", age: 25 }));
+        const { result } = renderHook(() => useLocalStorageJson("user", User));
+        expect(result.current[0]).toEqual({ name: "alice", age: 25 });
+
+        act(() => result.current[1](undefined));
+
+        expect(result.current[0]).toBeUndefined();
+        expect(localStorage.getItem("user")).toBeNull();
     });
 
     // --- Regression tests for previously fixed bugs ---

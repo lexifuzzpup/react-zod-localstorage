@@ -3,7 +3,7 @@ import { z, ZodAny, type ZodType } from "zod";
 
 export type LocalStorageHook<Schema> = [
     z.infer<Schema> | undefined,
-    (value: z.infer<Schema>) => void
+    (value: z.infer<Schema> | undefined) => void
 ]
 
 /**
@@ -11,6 +11,7 @@ export type LocalStorageHook<Schema> = [
  * if it doesn't match. Must accept a string input, which can be coerced
  * into a usable value. If you want a custom type, define a JSON codec or
  * use the useLocalStorageJson hook.
+ * Pass undefined to delete the value.
  * @param name Key in localStorage
  * @param schema Zod schema that parses a string into a usable value
  * @returns [ value, setValue ]
@@ -30,8 +31,12 @@ export function useLocalStorage<Schema extends ZodType<any, string> = ZodAny>(
 
     return [
         item,
-        useCallback((value: z.infer<Schema>) => {
-            localStorage.setItem(name, schema.encode(value));
+        useCallback((value: z.infer<Schema> | undefined) => {
+            if(value === undefined) {
+                localStorage.removeItem(name);
+            } else {
+                localStorage.setItem(name, schema.encode(value));
+            }
             setItem(value);
         }, [ name, schema ])
     ]
@@ -60,6 +65,7 @@ const jsonCodec = <T extends z.core.$ZodType>(schema: T) =>
  * Parses a localStorage value using a zod schema, returning undefined
  * if it doesn't match. Uses an internal JSON codec for reading/writing
  * values to localStorage.
+ * Pass undefined to delete the value.
  * @param name Key in localStorage
  * @param schema Zod schema for a custom type
  * @returns [ value, setValue ]
