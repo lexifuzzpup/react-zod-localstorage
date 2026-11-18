@@ -26,7 +26,7 @@ export function useLocalStorage<Schema extends ZodType<any, string> = ZodAny>(
         return schema.safeParse(localStorage.getItem(name) ?? undefined)
     }, [ schema, name ]);
 
-    const [ item, setItem ] = useState();
+    const [ item, setItem ] = useState(localStorageItem.data);
     useEffect(() => setItem(localStorageItem.data), [ schema, name ]);
 
     return [
